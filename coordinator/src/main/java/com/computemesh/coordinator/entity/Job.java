@@ -1,0 +1,51 @@
+package com.computemesh.coordinator.entity;
+
+import jakarta.persistence.*;
+
+import java.time.Instant;
+import java.util.UUID;
+
+@Entity
+public class Job {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    private String type;
+
+    @Enumerated(EnumType.STRING)
+    private JobStatus status;
+
+    private Instant createdAt;
+
+    public Job(){
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
+    }
+
+    public JobStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(JobStatus status) {
+        this.status = status;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+}
