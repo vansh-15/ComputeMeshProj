@@ -3,7 +3,9 @@ package com.computemesh.coordinator.service;
 import com.computemesh.coordinator.dto.JobResponse;
 import com.computemesh.coordinator.entity.Job;
 import com.computemesh.coordinator.entity.JobStatus;
+import com.computemesh.coordinator.entity.Worker;
 import com.computemesh.coordinator.repository.JobRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -69,6 +73,19 @@ public class JobService {
                         job.getStatus(),
                         job.getCreatedAt()
                 ));
+    }
+
+    @Transactional
+    public Optional<Job> claimNextJob(Worker worker){
+        List<Job> jobs = jobRepository.findNextQueuedJobForUpdate();
+        if(jobs.isEmpty()){
+            return Optional.empty();
+        }
+        Job job = jobs.get(0);
+        job.setStatus(JobStatus.RUNNING);
+        job.setWorker(worker);
+
+        return Optional.of(jobRepository.save(job));
     }
 
 }

@@ -3,6 +3,8 @@ package com.computemesh.coordinator;
 import com.computemesh.coordinator.dto.JobResponse;
 import com.computemesh.coordinator.entity.Job;
 import com.computemesh.coordinator.entity.JobStatus;
+import com.computemesh.coordinator.entity.Worker;
+import com.computemesh.coordinator.entity.WorkerStatus;
 import com.computemesh.coordinator.repository.JobRepository;
 import com.computemesh.coordinator.service.JobService;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +21,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class JobServiceTest {
     private JobRepository jobRepository;
@@ -92,6 +92,46 @@ public class JobServiceTest {
         );
 
         verify(jobRepository).findAll(any(Pageable.class));
+    }
+
+    @Test
+    void claimNextJobShouldAssignWorkerAndMarkJobRunning() {
+        Worker worker = new Worker();
+        worker.setStatus(WorkerStatus.ACTIVE);
+        worker.setRegisteredAt(java.time.Instant.now());
+
+        Job job = new Job();
+        job.setType("PRIME_COUNT");
+        job.setStatus(JobStatus.QUEUED);
+        job.setCreatedAt(java.time.Instant.now());
+
+        when(jobRepository.findNextQueuedJobForUpdate())
+                .thenReturn(List.of(job));
+
+        when(jobRepository.save(any(Job.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Optional<Job> result = jobService.claimNextJob(worker);
+
+        assertTrue(result.isPresent());
+        assertEquals(JobStatus.RUNNING, result.get().getStatus());
+        assertSame(worker, result.get().getWorker());
+
+        verify(jobRepository).save(job);
+    }
+
+    @Test
+    void claimNextJobShouldReturnEmptyWhenNoJobIsAvailable() {
+        Worker worker = new Worker();
+        worker.setStatus(WorkerStatus.ACTIVE);
+
+        when(jobRepository.findNextQueuedJobForUpdate())
+                .thenReturn(List.of());
+
+        Optional<Job> result = jobService.claimNextJob(worker);
+
+        assertTrue(result.isEmpty());
+        verify(jobRepository, never()).save(any(Job.class));
     }
 
 }
