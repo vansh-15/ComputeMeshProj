@@ -29,11 +29,14 @@ public class JobService {
         this.jobRepository = jobRepository;
     }
 
-    public Job createJob(String type){
+    public Job createJob(String type, String inputData) {
         Job job = new Job();
+
         job.setType(type);
+        job.setInputData(inputData);
         job.setStatus(JobStatus.QUEUED);
         job.setCreatedAt(Instant.now());
+
         return jobRepository.save(job);
     }
 
@@ -86,6 +89,27 @@ public class JobService {
         job.setWorker(worker);
 
         return Optional.of(jobRepository.save(job));
+    }
+
+    @Transactional
+    public Job submitResult(UUID jobId, String resultData) {
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Job not found: " + jobId
+                ));
+
+        if (job.getStatus() != JobStatus.RUNNING) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Only RUNNING jobs can receive results"
+            );
+        }
+
+        job.setResultData(resultData);
+        job.setStatus(JobStatus.SUCCEEDED);
+
+        return jobRepository.save(job);
     }
 
 }

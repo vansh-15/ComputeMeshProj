@@ -22,6 +22,28 @@ public class Job {
     @JoinColumn(name = "worker_id")
     private Worker worker;
 
+    @Column(columnDefinition = "TEXT")
+    private String inputData;
+
+    @Column(columnDefinition = "TEXT")
+    private String resultData;
+
+    public String getResultData() {
+        return resultData;
+    }
+
+    public void setResultData(String resultData) {
+        this.resultData = resultData;
+    }
+
+    public String getInputData() {
+        return inputData;
+    }
+
+    public void setInputData(String inputData) {
+        this.inputData = inputData;
+    }
+
     public Job(){
     }
 
