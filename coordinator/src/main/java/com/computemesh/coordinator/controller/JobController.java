@@ -75,13 +75,21 @@ public class JobController {
         );
     }
 
+
+
     @PostMapping("/{id}/result")
     public ResponseEntity<Void> submitResult(
             @PathVariable UUID id,
             @Valid @RequestBody JobResultRequest request) {
 
-        jobService.submitResult(id, request.resultData());
+        jobService.submitResult(
+                id,
+                request.workerId(),
+                request.attemptNumber(),
+                request.resultData()
+        );
 
         return ResponseEntity.noContent().build();
     }
+
 }

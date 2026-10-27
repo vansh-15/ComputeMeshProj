@@ -37,12 +37,22 @@ public class CoordinatorClient {
                 .body(JobClaimResponse.class);
     }
 
-    public void submitResult(UUID jobId, long count) {
+
+
+    public void submitResult(
+            UUID jobId,
+            UUID workerId,
+            int attemptNumber,
+            long count) {
+
         String resultData = "{\"count\":" + count + "}";
 
         restClient.post()
                 .uri("/api/jobs/{jobId}/result", jobId)
-                .body(new JobResultRequest(resultData))
+                .body(new JobResultRequest(
+                        workerId,
+                        attemptNumber,
+                        resultData))
                 .retrieve()
                 .toBodilessEntity();
     }

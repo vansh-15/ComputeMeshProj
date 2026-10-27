@@ -3,6 +3,7 @@ package com.computemesh.worker_agent.service;
 
 import com.computemesh.worker_agent.client.CoordinatorClient;
 import com.computemesh.worker_agent.model.JobClaimResponse;
+import com.computemesh.worker_agent.model.JobResultRequest;
 import com.computemesh.worker_agent.model.PrimeCountInput;
 import com.computemesh.worker_agent.model.WorkerRegistrationResponse;
 import org.slf4j.Logger;
@@ -27,7 +28,6 @@ public class WorkerStartupRunner implements CommandLineRunner {
             CoordinatorClient coordinatorClient,
             PrimeCountService primeCountService,
             ObjectMapper objectMapper) {
-
         this.registrationService = registrationService;
         this.coordinatorClient = coordinatorClient;
         this.primeCountService = primeCountService;
@@ -42,38 +42,56 @@ public class WorkerStartupRunner implements CommandLineRunner {
         log.info("Worker registered successfully. Worker ID: {}",
                 worker.id());
 
-        JobClaimResponse job =
-                coordinatorClient.claimJob(worker.id());
+        while (!Thread.currentThread().isInterrupted()) {
+            try {
+                JobClaimResponse job =
+                        coordinatorClient.claimJob(worker.id());
 
-        if (job == null) {
-            log.info("No queued jobs available.");
-            return;
+                if (job == null) {
+                    log.debug("No jobs available. Waiting...");
+                    Thread.sleep(2000);
+                    continue;
+                }
+
+                log.info("Claimed job: {}, type: {}",
+                        job.id(), job.type());
+
+                if ("PRIME_COUNT".equals(job.type())) {
+                    PrimeCountInput input = objectMapper.readValue(
+                            job.inputData(), PrimeCountInput.class);
+
+                    long result =
+                            primeCountService.countPrimes(input.limit());
+
+                    log.info("PRIME_COUNT result: {}", result);
+
+                    coordinatorClient.submitResult(
+                            job.id(),
+                            worker.id(),
+                            job.attemptNumber(),
+                            result
+                    );
+
+                    log.info("Job {} completed successfully", job.id());
+                } else {
+                    log.warn("Unsupported job type: {}", job.type());
+                }
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception e) {
+                log.error("Error while processing a job", e);
+
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
         }
 
-        log.info("Claimed job: {}, type: {}, status: {}",
-                job.id(), job.type(), job.status());
-
-        log.info("Received job input: {}", job.inputData());
-
-        if ("PRIME_COUNT".equals(job.type())) {
-            PrimeCountInput input = objectMapper.readValue(
-                    job.inputData(),
-                    PrimeCountInput.class
-            );
-
-            long result =
-                    primeCountService.countPrimes(input.limit());
-
-            log.info("PRIME_COUNT result for limit {}: {}",
-                    input.limit(), result);
-
-
-            coordinatorClient.submitResult(job.id(), result);
-
-            log.info("Result submission completed for job {}", job.id());
-        } else {
-            log.warn("Unsupported job type for execution: {}",
-                    job.type());
-        }
+        log.info("Worker polling loop stopped.");
     }
 }

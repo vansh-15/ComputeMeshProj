@@ -28,6 +28,12 @@ public class Job {
     @Column(columnDefinition = "TEXT")
     private String resultData;
 
+    @Column
+    private Instant leaseExpiresAt;
+
+    @Column(nullable = false)
+    private int attemptNumber = 0;
+
     public String getResultData() {
         return resultData;
     }
@@ -82,4 +88,21 @@ public class Job {
     public void setWorker(Worker worker) {
         this.worker = worker;
     }
+
+    public Instant getLeaseExpiresAt() {
+        return leaseExpiresAt;
+    }
+
+    public void setLeaseExpiresAt(Instant leaseExpiresAt) {
+        this.leaseExpiresAt = leaseExpiresAt;
+    }
+
+    public int getAttemptNumber() {
+        return attemptNumber;
+    }
+
+    public void setAttemptNumber(int attemptNumber) {
+        this.attemptNumber = attemptNumber;
+    }
+
 }

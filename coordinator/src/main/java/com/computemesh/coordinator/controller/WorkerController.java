@@ -49,7 +49,8 @@ public class WorkerController {
                 job.getId(),
                 job.getType(),
                 job.getStatus().name(),
-                job.getInputData()
+                job.getInputData(),
+                job.getAttemptNumber()
         );
     }
 }

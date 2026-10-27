@@ -39,9 +39,9 @@ public class JobServiceTest {
                 org.mockito.ArgumentMatchers.any(Job.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
-        Job job = jobService.createJob("PRIME_COUNT");
+        Job job = jobService.createJob("PRIME_COUNT","{\"limit\":100000}");
 
-        assertEquals("PRIME_COUNT", job.getType());
+        assertEquals("{\"limit\":100000}", job.getInputData());
         assertEquals(JobStatus.QUEUED, job.getStatus());
         assertNotNull(job.getCreatedAt());
 

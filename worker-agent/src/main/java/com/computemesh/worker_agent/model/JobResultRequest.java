@@ -1,4 +1,8 @@
 package com.computemesh.worker_agent.model;
 
-public record JobResultRequest(String resultData) {
+import java.util.UUID;
+
+public record JobResultRequest(
+        UUID workerId,int attemptNumber, String resultData
+) {
 }

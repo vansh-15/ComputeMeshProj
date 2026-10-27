@@ -6,6 +6,6 @@ public record JobClaimResponse(
         UUID id,
         String type,
         String status,
-        String inputData
-) {
-}
+        String inputData,
+        int attemptNumber
+) {}

@@ -87,27 +87,60 @@ public class JobService {
         Job job = jobs.get(0);
         job.setStatus(JobStatus.RUNNING);
         job.setWorker(worker);
+        job.setLeaseExpiresAt(Instant.now().plusSeconds(60));
+        job.setAttemptNumber(job.getAttemptNumber() + 1);
 
         return Optional.of(jobRepository.save(job));
     }
 
     @Transactional
-    public Job submitResult(UUID jobId, String resultData) {
+    public int recoverExpiredJobs() {
+        return jobRepository.requeueExpiredJobs(Instant.now());
+    }
+
+
+
+    @Transactional
+    public Job submitResult(
+            UUID jobId,
+            UUID workerId,
+            int attemptNumber,
+            String resultData) {
+
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "Job not found: " + jobId
-                ));
+                        "Job not found: " + jobId));
 
         if (job.getStatus() != JobStatus.RUNNING) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Only RUNNING jobs can receive results"
-            );
+                    "Only RUNNING jobs can receive results");
+        }
+
+        if (job.getWorker() == null
+                || !job.getWorker().getId().equals(workerId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Worker is not assigned to this job");
+        }
+
+        if (job.getAttemptNumber() != attemptNumber) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Stale attempt: submitted attempt does not match current attempt");
+        }
+
+        if (job.getLeaseExpiresAt() == null
+                || !job.getLeaseExpiresAt().isAfter(Instant.now())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Job lease has expired");
         }
 
         job.setResultData(resultData);
         job.setStatus(JobStatus.SUCCEEDED);
+        job.setLeaseExpiresAt(null);
 
         return jobRepository.save(job);
     }
