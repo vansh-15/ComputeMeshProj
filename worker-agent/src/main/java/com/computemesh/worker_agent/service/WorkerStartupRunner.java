@@ -47,6 +47,8 @@ public class WorkerStartupRunner implements CommandLineRunner {
                 JobClaimResponse job =
                         coordinatorClient.claimJob(worker.id());
 
+                log.info("Claim response received. Job is: {}", job);
+
                 if (job == null) {
                     log.debug("No jobs available. Waiting...");
                     Thread.sleep(2000);
