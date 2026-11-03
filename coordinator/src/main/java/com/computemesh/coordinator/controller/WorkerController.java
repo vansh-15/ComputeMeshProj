@@ -7,10 +7,7 @@ import com.computemesh.coordinator.entity.Worker;
 import com.computemesh.coordinator.service.JobService;
 import com.computemesh.coordinator.service.WorkerService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -53,4 +50,15 @@ public class WorkerController {
                 job.getAttemptNumber()
         );
     }
+
+    @PostMapping("/{workerId}/jobs/{jobId}/heartbeat")
+    public ResponseEntity<Void> heartbeat(
+            @PathVariable UUID workerId,
+            @PathVariable UUID jobId,
+            @RequestParam int attemptNumber) {
+
+        jobService.heartbeat(jobId, workerId, attemptNumber);
+        return ResponseEntity.noContent().build();
+    }
+
 }

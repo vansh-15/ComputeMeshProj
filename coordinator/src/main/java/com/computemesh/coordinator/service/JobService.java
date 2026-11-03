@@ -145,4 +145,46 @@ public class JobService {
         return jobRepository.save(job);
     }
 
+    @Transactional
+    public void heartbeat(
+            UUID jobId,
+            UUID workerId,
+            int attemptNumber) {
+
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Job not found"));
+
+        if (job.getStatus() != JobStatus.RUNNING) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Job is not RUNNING");
+        }
+
+        if (job.getWorker() == null ||
+                !job.getWorker().getId().equals(workerId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "Worker is not assigned to this job");
+        }
+
+        if (job.getAttemptNumber() != attemptNumber) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Attempt number mismatch");
+        }
+
+        if (job.getLeaseExpiresAt() == null ||
+                !job.getLeaseExpiresAt().isAfter(Instant.now())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Job lease has expired");
+        }
+
+        job.setLeaseExpiresAt(Instant.now().plusSeconds(60));
+
+        jobRepository.save(job);
+    }
+
 }

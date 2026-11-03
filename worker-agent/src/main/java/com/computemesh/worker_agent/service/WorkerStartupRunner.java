@@ -12,6 +12,11 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
 @Component
 public class WorkerStartupRunner implements CommandLineRunner {
 
@@ -22,6 +27,9 @@ public class WorkerStartupRunner implements CommandLineRunner {
     private final CoordinatorClient coordinatorClient;
     private final PrimeCountService primeCountService;
     private final ObjectMapper objectMapper;
+
+    private final ScheduledExecutorService heartbeatExecutor =
+            Executors.newSingleThreadScheduledExecutor();
 
     public WorkerStartupRunner(
             WorkerRegistrationService registrationService,
@@ -59,22 +67,44 @@ public class WorkerStartupRunner implements CommandLineRunner {
                         job.id(), job.type());
 
                 if ("PRIME_COUNT".equals(job.type())) {
-                    PrimeCountInput input = objectMapper.readValue(
-                            job.inputData(), PrimeCountInput.class);
 
-                    long result =
-                            primeCountService.countPrimes(input.limit());
+                    ScheduledFuture<?> heartbeatTask =
+                            heartbeatExecutor.scheduleAtFixedRate(() -> {
+                                try {
+                                    coordinatorClient.sendHeartbeat(
+                                            worker.id(),
+                                            job.id(),
+                                            job.attemptNumber()
+                                    );
 
-                    log.info("PRIME_COUNT result: {}", result);
+                                    log.info("Heartbeat sent for job {}", job.id());
 
-                    coordinatorClient.submitResult(
-                            job.id(),
-                            worker.id(),
-                            job.attemptNumber(),
-                            result
-                    );
+                                } catch (Exception e) {
+                                    log.error("Heartbeat failed for job {}", job.id(), e);
+                                }
+                            }, 0, 15, TimeUnit.SECONDS);
 
-                    log.info("Job {} completed successfully", job.id());
+                    try {
+                        PrimeCountInput input = objectMapper.readValue(
+                                job.inputData(), PrimeCountInput.class);
+
+                        long result = primeCountService.countPrimes(input.limit());
+
+                        log.info("PRIME_COUNT result: {}", result);
+
+                        coordinatorClient.submitResult(
+                                job.id(),
+                                worker.id(),
+                                job.attemptNumber(),
+                                result
+                        );
+
+                        log.info("Job {} completed successfully", job.id());
+
+                    } finally {
+                        heartbeatTask.cancel(false);
+                    }
+
                 } else {
                     log.warn("Unsupported job type: {}", job.type());
                 }
