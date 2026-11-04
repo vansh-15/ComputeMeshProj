@@ -50,6 +50,17 @@ public class WorkerStartupRunner implements CommandLineRunner {
         log.info("Worker registered successfully. Worker ID: {}",
                 worker.id());
 
+        heartbeatExecutor.scheduleAtFixedRate(() -> {
+            try {
+                coordinatorClient.sendWorkerHeartbeat(worker.id());
+
+                log.info("Worker heartbeat sent: {}", worker.id());
+
+            } catch (Exception e) {
+                log.error("Failed to send worker heartbeat", e);
+            }
+        }, 0, 15, TimeUnit.SECONDS);
+
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 JobClaimResponse job =

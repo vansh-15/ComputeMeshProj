@@ -17,6 +17,10 @@ public class Worker {
 
     private Instant registeredAt;
 
+    @Column
+    private Instant lastHeartbeatAt;
+
+
     public Worker(){
 
     }
@@ -44,4 +48,13 @@ public class Worker {
     public void setRegisteredAt(Instant registeredAt) {
         this.registeredAt = registeredAt;
     }
+
+    public Instant getLastHeartbeatAt() {
+        return lastHeartbeatAt;
+    }
+
+    public void setLastHeartbeatAt(Instant lastHeartbeatAt) {
+        this.lastHeartbeatAt = lastHeartbeatAt;
+    }
+
 }

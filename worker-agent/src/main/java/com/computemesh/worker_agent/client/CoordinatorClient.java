@@ -65,4 +65,11 @@ public class CoordinatorClient {
                 .toBodilessEntity();
     }
 
+    public void sendWorkerHeartbeat(UUID workerId) {
+        restClient.post()
+                .uri("/api/workers/{workerId}/heartbeat", workerId)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
 }

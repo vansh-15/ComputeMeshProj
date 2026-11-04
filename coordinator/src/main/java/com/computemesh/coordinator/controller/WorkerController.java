@@ -61,4 +61,13 @@ public class WorkerController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{workerId}/heartbeat")
+    public ResponseEntity<Void> workerHeartbeat(
+            @PathVariable UUID workerId) {
+
+        workerService.heartbeat(workerId);
+
+        return ResponseEntity.noContent().build();
+    }
+
 }
